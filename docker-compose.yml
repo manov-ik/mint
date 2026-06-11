@@ -1,0 +1,39 @@
+version: "3.8"
+name: mint
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: mint_user
+      POSTGRES_PASSWORD: mint_password
+      POSTGRES_DB: mint_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mint_user -d mint_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://mint_user:mint_password@db:5432/mint_db
+      NEXTAUTH_SECRET: dev_secret_mint_auth_key_12345
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_API_URL: http://localhost:3000/api
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
